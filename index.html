@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generador de Entregas – Vertical</title>
+
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <!-- Favicon (en el generador) -->
+  <link rel="icon" type="image/svg+xml" href="img/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand">
+        <!-- Logo a la izquierda -->
+        <img class="logoSquare" src="img/logo.svg" alt="Logo Vertical" />
+        <!-- Bloque a la derecha: wordmark + subtítulo -->
+        <div class="brandBlock">
+          <img class="wordmark" src="img/verticalproducciones.svg" alt="Vertical Producciones" />
+          <p class="tag">Generador de página de entrega</p>
+        </div>
+      </div>
+      <div class="city">Río Cuarto, Córdoba</div>
+    </header>
+
+    <!-- FORMULARIO -->
+    <form id="form" class="card" autocomplete="off">
+      <div class="grid">
+        <label>Cliente
+          <input type="text" id="cliente" placeholder="Delfi" required />
+        </label>
+        <label>Slug (URL)
+          <input type="text" id="slug" placeholder="delfi-xv" />
+          <small>Si lo dejás vacío se genera desde el nombre del cliente.</small>
+        </label>
+      </div>
+
+      <div class="grid">
+        <label>Link de Google Photos
+          <input type="url" id="linkPhotos" placeholder="https://photos.google.com/..." required />
+        </label>
+      </div>
+
+      <div class="files">
+        <label>Portada (1 imagen horizontal)
+          <input type="file" id="portada" accept="image/*" required />
+          <small>Tip: clic en la vista o usá los sliders para el foco.</small>
+        </label>
+        <label>Previews (hasta 6 imágenes cuadradas)
+          <input type="file" id="previews" accept="image/*" multiple />
+          <small>Clic en cada miniatura para definir su foco.</small>
+        </label>
+      </div>
+
+      <!-- Fine-tune foco portada -->
+      <div class="card soft">
+        <h3>Foco de portada</h3>
+        <div class="sliders">
+          <label>X (%) <input type="range" id="portadaX" min="0" max="100" value="50"></label>
+          <label>Y (%) <input type="range" id="portadaY" min="0" max="100" value="50"></label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Generar landing</button>
+        <button type="button" id="limpiar" class="btn">Limpiar</button>
+      </div>
+
+      <p class="note">Las imágenes se incrustan en el HTML final (base64).</p>
+    </form>
+
+    <!-- PREVIEW -->
+    <section class="preview card">
+      <h2>Vista previa rápida</h2>
+      <div class="mini-hero" id="miniHero">Sin portada</div>
+      <div class="mini-grid" id="miniGrid"></div>
+      <small>La vista previa es referencial. La página final usa el diseño completo.</small>
+    </section>
+
+    <footer class="foot">
+      <div class="social">
+        <a class="ico" href="https://www.instagram.com/verticalproducciones" target="_blank" aria-label="Instagram">
+          <img src="img/insta.png" alt="" />
+          <span>Instagram</span>
+        </a>
+        <a class="ico" href="https://wa.me/543584235933" target="_blank" aria-label="WhatsApp">
+          <img src="img/wpp.png" alt="" />
+          <span>WhatsApp</span>
+        </a>
+      </div>
+      <small>© <span id="y"></span> Vertical Producciones</small>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

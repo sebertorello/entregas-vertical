@@ -1,0 +1,72 @@
+:root{--dark:#333333;--light:#F1F1F1;--accent:#FFFF00}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--light);color:var(--dark);
+  font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
+.wrap{max-width:1024px;margin-inline:auto;padding:20px}
+
+/* HEADER */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.brand{display:flex;align-items:center;gap:12px} /* separa logo y bloque */
+.logoSquare{height:72px;width:auto;display:block;border-radius:12px}
+.brandBlock{
+  display:grid;row-gap:6px;align-items:center;
+  /* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+     AJUSTE FINO DEL WORDMARK HACIA LA IZQUIERDA:
+     mové este margen para “un pelín” más cerca del logo. Ej: -4px, -6px
+  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
+  margin-left:-2px;
+}
+.wordmark{height:44px;width:auto;display:block}
+.tag{margin:0;opacity:.8;font-size:1.25rem;line-height:1}
+.city{opacity:.8}
+
+/* UI */
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.08);padding:16px;margin:12px 0}
+.card.soft{background:#fafafa}
+
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+label{display:flex;flex-direction:column;gap:6px;font-weight:700}
+input[type="text"],input[type="url"],input[type="file"]{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit;background:#fff}
+small{opacity:.7}
+
+.files{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.sliders label{font-weight:600}
+.sliders input[type="range"]{width:100%}
+
+.actions{display:flex;gap:10px;margin-top:8px}
+.btn{appearance:none;border:none;background:#e6e6e6;color:#111;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+.btn-primary{background:var(--accent);color:#111;box-shadow:0 8px 20px rgba(255,255,0,.25)}
+.note{margin-top:6px}
+
+/* PREVIEW */
+.preview h2{margin-top:0}
+.mini-hero{
+  background:#ddd;border-radius:12px;overflow:hidden;cursor:crosshair;
+  height:38vh;min-height:260px;display:grid;place-items:center
+}
+.mini-hero img{width:100%;height:100%;object-fit:cover;object-position:50% 50%}
+
+.mini-grid{display:grid;gap:12px;margin-top:12px;grid-template-columns:repeat(3,1fr)}
+@media (max-width:1024px){ .mini-grid{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:620px){  .mini-grid{grid-template-columns:1fr} }
+.mini-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;object-position:50% 50%;
+  border-radius:12px;background:#eee;cursor:crosshair}
+
+/* FOOTER */
+.foot{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
+.social{display:flex;gap:16px;align-items:center}
+.ico{display:inline-flex;gap:8px;align-items:center;text-decoration:none;color:inherit}
+.ico img{width:22px;height:22px;object-fit:contain;display:block}
+.ico span{font-weight:600}
+
+/* Responsive */
+@media (max-width:720px){
+  .grid{grid-template-columns:1fr}
+  .files{grid-template-columns:1fr}
+  .logoSquare{height:60px}
+  .wordmark{height:38px}
+  .tag{font-size:1.1rem}
+  .foot{flex-direction:column;gap:8px}
+}
