@@ -1,7 +1,19 @@
-// ===== utilidades =====
+/************************************************************
+ * Generador de Landing de Entregas – Vertical Producciones
+ * ---------------------------------------------------------
+ * Qué hace este archivo:
+ * - Toma datos del formulario y las imágenes (portada + previews)
+ * - Permite elegir el foco (object-position) clickeando la vista previa
+ * - Compila una landing HTML completa (con CSS inline optimizado)
+ * - Descarga localmente el HTML (backup)
+ * - Publica automáticamente vía endpoint de Vercel (si responde OK)
+ ************************************************************/
+
+// ===== Utilidades básicas =====
 const $ = (sel) => document.querySelector(sel);
 const yy = () => new Date().getFullYear();
 
+// Slug seguro a partir del nombre de cliente (quita acentos/espacios)
 const slugify = (str) =>
   str.toString()
     .normalize("NFKD")
@@ -10,6 +22,7 @@ const slugify = (str) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
+// Convertir archivo a DataURL (base64) para incrustar en el HTML final
 const fileToDataURL = (file) =>
   new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -18,22 +31,34 @@ const fileToDataURL = (file) =>
     r.readAsDataURL(file);
   });
 
-// ===== estado de recortes =====
+// ===== Estado de recortes/foco =====
+// Guarda la posición del foco de portada y de cada preview (en %)
 let portadaPos = { x: 50, y: 50 };
 let previewsPos = [];
 
-// ===== HTML de la landing final =====
+/****************************************************************
+ * buildLandingHTML()
+ * Arma el HTML COMPLETO de la página final que verá tu cliente.
+ * - Lleva CSS inline para que sea autónoma
+ * - Usa rutas absolutas para los íconos / logo (/img/...)
+ * - En móvil, mantiene SIEMPRE 2 columnas para las previews
+ ****************************************************************/
 const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) => {
   const title = `Entrega – ${cliente} | Vertical Producciones`;
-  const ogImage = portada64 || "";
 
+  // IMPORTANTE: og:image como URL pública (no base64) para los previews de redes.
+  // Asegurate de tener /img/share.jpg subido en el hosting.
+  const ogImage = `https://entregas.verticalproducciones.com.ar/img/share.jpg`;
+
+  // Previews: aplica el foco guardado y lazy-loading
   const previewsHtml = (previews64 || [])
     .map((src, i) => {
       const pos = previewsPos?.[i] || { x: 50, y: 50 };
-      return `<img src="${src}" alt="Preview" style="object-fit:cover;object-position:${pos.x}% ${pos.y}%">`;
+      return `<img src="${src}" alt="Preview ${i + 1}" loading="lazy" style="object-fit:cover;object-position:${pos.x}% ${pos.y}%">`;
     })
     .join("\n");
 
+  // HTML completo de la landing
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -41,14 +66,24 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title>
 <meta name="description" content="Tus fotos están listas.">
+<link rel="canonical" href="https://entregas.verticalproducciones.com.ar/${slug}.html" />
+
+<!-- Open Graph -->
 <meta property="og:title" content="${title}" />
 <meta property="og:image" content="${ogImage}" />
 <meta property="og:url" content="https://entregas.verticalproducciones.com.ar/${slug}.html" />
+<meta property="og:type" content="website" />
+
+<!-- Tipografía -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="../img/logo.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="../img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="../img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="../img/apple-touch-icon.png">
+
+<!-- Favicons (usar rutas absolutas al root del dominio) -->
+<link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
 
 <style>
   :root{--dark:#333333;--light:#F1F1F1;--accent:#FFFF00}
@@ -58,47 +93,58 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   a{color:inherit;text-decoration:none}
   .wrap{max-width:1024px;margin:auto;padding:24px}
 
+  /* Header */
   header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:10px;min-width:0}
   .logoSquare{height:64px;width:auto;border-radius:12px;flex:0 0 auto}
   .brandBlock{display:grid;row-gap:6px;align-items:center;min-width:0}
   .wordmark{height:42px;width:auto}
   header small{white-space:nowrap;opacity:.8}
+  .loc small{opacity:.8}
 
+  /* Tarjetas y hero */
   .card{background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
   .hero{position:relative;border-radius:20px;overflow:hidden;margin-bottom:20px;background:#000}
   .hero img{width:100%;height:48svh;object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%;filter:brightness(.85)}
 
+  /* Texto + CTA */
   .title{font-weight:900;font-size:clamp(1.25rem,1.2rem + 1.2vw,1.8rem);margin-bottom:8px;line-height:1.15}
   .subtitle{font-weight:700;opacity:.85;margin-bottom:14px;line-height:1.35}
   .cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
-  .btn{padding:12px 16px;border:none;border-radius:14px;font-weight:800;cursor:pointer}
-  .btn-primary{background:var(--accent);color:var(--dark);box-shadow:0 10px 24px rgba(255,255,0,.25)}
+  .btn{padding:12px 16px;border:none;border-radius:14px;font-weight:800;cursor:pointer;transition:.15s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.1)}
+  .btn-primary{background:var(--accent);color:#111;box-shadow:0 10px 24px rgba(255,255,0,.25)}
 
+  /* Grilla de previews */
   .previews{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  .previews img{width:100%;aspect-ratio:1/1;border-radius:12px;object-fit:cover}
+  .previews img{width:100%;aspect-ratio:1/1;border-radius:12px;object-fit:cover;box-shadow:0 4px 10px rgba(0,0,0,.06)}
 
+  /* Footer */
   footer{margin-top:20px;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;gap:12px;color:#555;flex-wrap:wrap}
   .social{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-  .ico{display:inline-flex;gap:8px;align-items:center}
+  .ico{display:inline-flex;gap:8px;align-items:center;padding:4px 6px;border-radius:8px}
+  .ico:hover{background:rgba(0,0,0,.05)}
   .ico img{width:20px;height:20px;object-fit:contain}
   .ico span{font-weight:600}
 
+  /* RESPONSIVE:
+     - A 900px: apila header, mantiene 2 columnas de fotos y ordena el footer
+     - A 420px: ajusta tip y paddings, sigue con 2 columnas de fotos */
   @media (max-width:900px){
+    header{flex-direction:column;align-items:flex-start;gap:6px}
+    .loc{margin-top:2px}
+    .hero img{height:42svh}
     .previews{grid-template-columns:repeat(2,1fr)}
-    .hero img{height:44svh}
+    footer{flex-direction:column;align-items:flex-start;gap:10px}
+    .social{gap:14px;row-gap:8px}
   }
-  @media (max-width:600px){
+  @media (max-width:420px){
     .wrap{padding:16px}
-    header{flex-direction:column;align-items:flex-start;gap:8px}
     .logoSquare{height:52px}
     .wordmark{height:34px}
-    header small{font-size:.95rem}
-    .card{padding:16px}
-    .hero img{height:38svh}
+    .title{font-size:clamp(1.1rem, 1rem + 3vw, 1.6rem)}
     .btn{padding:12px 14px}
-    .previews{grid-template-columns:1fr}
-    footer{flex-direction:column;align-items:flex-start;gap:8px;font-size:.9rem}
+    .previews{grid-template-columns:repeat(2,1fr)}
   }
 </style>
 </head>
@@ -106,13 +152,13 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   <div class="wrap">
     <header>
       <div class="brand">
-        <img class="logoSquare" src="../img/logo.svg" alt="Logo Vertical">
+        <img class="logoSquare" src="/img/logo.svg" alt="Logo Vertical">
         <div class="brandBlock">
-          <img class="wordmark" src="../img/verticalproducciones.svg" alt="Vertical Producciones">
+          <img class="wordmark" src="/img/verticalproducciones.svg" alt="Vertical Producciones">
           <small>Entrega de fotos</small>
         </div>
       </div>
-      <div><small>Río Cuarto, Córdoba</small></div>
+      <div class="loc"><small>Río Cuarto, Córdoba</small></div>
     </header>
 
     <section class="hero">
@@ -124,7 +170,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
       <p class="subtitle">Gracias por confiar en nosotros. Preparé esta página para que tengas tu entrega de forma elegante y simple.</p>
 
       <div class="cta">
-        <a class="btn btn-primary" href="${linkPhotos}" target="_blank" rel="noopener">
+        <a class="btn btn-primary" href="${linkPhotos}" target="_blank" rel="noopener noreferrer">
           Descargar galería (Google Photos)
         </a>
       </div>
@@ -136,12 +182,12 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 
     <footer>
       <div class="social">
-        <a class="ico" href="https://www.instagram.com/vertical.producciones" target="_blank" aria-label="Instagram">
-          <img src="../img/insta.png" alt="" />
+        <a class="ico" href="https://www.instagram.com/vertical.producciones" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <img src="/img/insta.png" alt="" />
           <span>@vertical.producciones</span>
         </a>
-        <a class="ico" href="https://wa.me/543584235933" target="_blank" aria-label="WhatsApp">
-          <img src="../img/wpp.png" alt="" />
+        <a class="ico" href="https://wa.me/543584235933" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+          <img src="/img/wpp.png" alt="" />
           <span>WhatsApp</span>
         </a>
       </div>
@@ -152,7 +198,11 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 </html>`;
 };
 
-// ===== publicar a Vercel (que commitea al repo) =====
+/****************************************************************
+ * publicarLanding()
+ * Llama al endpoint de Vercel que comitea el HTML al repo y despliega.
+ * Devuelve la URL pública (https://entregas.verticalproducciones.com.ar/slug.html)
+ ****************************************************************/
 async function publicarLanding(slug, htmlFinal) {
   const ENDPOINT = 'https://entregas-vertical.vercel.app/api/publish';
 
@@ -169,19 +219,24 @@ async function publicarLanding(slug, htmlFinal) {
     const msg = data.error || data.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  return data.url; // e.g. https://entregas.verticalproducciones.com.ar/Oriana.html
+  return data.url; // ej: https://entregas.verticalproducciones.com.ar/Oriana.html
 }
 
-// ===== app =====
+/****************************************************************
+ * App – listeners y flujo
+ ****************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
+  // Año del footer (en el generador, no en la landing final)
   $("#y").textContent = yy();
 
+  // Referencias de UI
   const miniHero = $("#miniHero");
   const miniGrid = $("#miniGrid");
   const portadaX = $("#portadaX");
   const portadaY = $("#portadaY");
   const submitBtn = $('#form button[type="submit"]');
 
+  /********** Portada: cargar imagen y vista previa **********/
   $("#portada").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) { miniHero.textContent = "Sin portada"; return; }
@@ -190,6 +245,7 @@ window.addEventListener("DOMContentLoaded", () => {
       style="object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%">`;
   });
 
+  // Elegir foco clickeando sobre la mini-hero
   miniHero.addEventListener("click", (e) => {
     const img = $("#miniHeroImg"); if (!img) return;
     const rect = img.getBoundingClientRect();
@@ -201,6 +257,7 @@ window.addEventListener("DOMContentLoaded", () => {
     portadaY.value = Math.round(portadaPos.y);
   });
 
+  // Sliders X/Y sincronizados con la mini-hero
   portadaX.addEventListener("input", () => {
     const img = $("#miniHeroImg"); if (!img) return;
     portadaPos.x = Number(portadaX.value);
@@ -212,9 +269,10 @@ window.addEventListener("DOMContentLoaded", () => {
     img.style.objectPosition = `${portadaPos.x}% ${portadaPos.y}%`;
   });
 
+  /********** Previews: cargar imágenes y permitir foco por click **********/
   $("#previews").addEventListener("change", async (e) => {
     miniGrid.innerHTML = "";
-    const files = Array.from(e.target.files || []).slice(0, 6);
+    const files = Array.from(e.target.files || []).slice(0, 6); // máx 6
     previewsPos = [];
     for (let i = 0; i < files.length; i++) {
       const src = await fileToDataURL(files[i]);
@@ -234,6 +292,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  /********** Botón Limpiar **********/
   $("#limpiar").addEventListener("click", () => {
     $("#form").reset();
     miniHero.textContent = "Sin portada";
@@ -243,6 +302,7 @@ window.addEventListener("DOMContentLoaded", () => {
     portadaX.value = 50; portadaY.value = 50;
   });
 
+  /********** Submit: compilar HTML, descargar y publicar **********/
   $("#form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -256,18 +316,19 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // armar imágenes
+    // Portada a base64 (si se cargó)
     const portadaFile = $("#portada").files?.[0];
     const portada64 = portadaFile ? await fileToDataURL(portadaFile) : "";
 
+    // Previews (hasta 6) a base64
     const previewFiles = Array.from($("#previews").files || []).slice(0, 6);
     const previews64 = [];
     for (const f of previewFiles) previews64.push(await fileToDataURL(f));
 
-    // compilar HTML final
+    // Compilar HTML final de la landing
     const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
 
-    // descarga local (backup)
+    // Descarga local (backup)
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -277,7 +338,7 @@ window.addEventListener("DOMContentLoaded", () => {
     URL.revokeObjectURL(a.href);
     a.remove();
 
-    // publicar automático
+    // Publicación automática
     try {
       submitBtn.disabled = true;
       const txtOrig = submitBtn.textContent;
