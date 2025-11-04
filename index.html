@@ -9,11 +9,15 @@
   <link rel="icon" type="image/svg+xml" href="./img/logo.svg">
   <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Forzar HTTPS mientras GitHub emite el certificado -->
+  <!-- Forzar HTTPS (permite localhost para pruebas) -->
   <script>
-    if (location.protocol !== 'https:') {
-      location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
-    }
+    (function () {
+      const isHTTPS = location.protocol === 'https:';
+      const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
+      if (!isHTTPS && !isLocal) {
+        location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+      }
+    })();
   </script>
 </head>
 <body>
@@ -76,16 +80,15 @@
     <section class="card preview">
       <h2>Vista previa rápida</h2>
       <p style="opacity:.75">Se actualiza cuando cargás imágenes.</p>
-      <!-- (la mini-hero y mini-grid ya cumplen de preview) -->
     </section>
 
     <!-- FOOTER -->
     <footer class="foot">
       <div class="social">
-        <a class="ico" href="https://www.instagram.com/vertical.producciones" target="_blank" aria-label="Instagram">
+        <a class="ico" href="https://www.instagram.com/vertical.producciones" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
           <img src="./img/insta.png" alt=""><span>@vertical.producciones</span>
         </a>
-        <a class="ico" href="https://wa.me/543584235933" target="_blank" aria-label="WhatsApp">
+        <a class="ico" href="https://wa.me/543584235933" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
           <img src="./img/wpp.png" alt=""><span>WhatsApp</span>
         </a>
       </div>
