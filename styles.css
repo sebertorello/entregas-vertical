@@ -7,14 +7,10 @@ html,body{margin:0;padding:0;background:var(--light);color:var(--dark);
 
 /* HEADER */
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.brand{display:flex;align-items:center;gap:12px} /* separa logo y bloque */
+.brand{display:flex;align-items:center;gap:12px}
 .logoSquare{height:72px;width:auto;display:block;border-radius:12px}
 .brandBlock{
   display:grid;row-gap:6px;align-items:center;
-  /* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-     AJUSTE FINO DEL WORDMARK HACIA LA IZQUIERDA:
-     mové este margen para “un pelín” más cerca del logo. Ej: -4px, -6px
-  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
   margin-left:-2px;
 }
 .wordmark{height:44px;width:auto;display:block}
