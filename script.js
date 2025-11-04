@@ -180,17 +180,17 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
       <h2 class="title">¡Tus fotos están listas, ${cliente}!</h2>
       <p class="subtitle">Gracias por confiar en nosotros. Preparé esta página para que tengas tu entrega de forma elegante y simple.</p>
 
-      <div class="cta">
-        <a class="btn btn-primary" href="${linkPhotos}" target="_blank" rel="noopener noreferrer">
-          Descargar galería (Google Photos)
-        </a>
-      </div>
+      
 
       <div class="previews">
         ${previewsHtml}
       </div>
     </div>
-
+<div class="cta">
+        <a class="btn btn-primary" href="${linkPhotos}" target="_blank" rel="noopener noreferrer">
+          Descargar galería (Google Photos)
+        </a>
+      </div>
     <footer>
       <div class="social">
         <a class="ico" href="https://www.instagram.com/vertical.producciones" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
