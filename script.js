@@ -183,7 +183,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 
     <div class="card">
       <h2 class="title">¡Tus fotos están listas, ${cliente}!</h2>
-      <p class="subtitle">Gracias por confiar en nosotros. Preparé esta página para que tengas tu entrega de forma elegante y simple.</p>
+      <p class="subtitle">Gracias por confiar en nosotros. Esperamos que disfrutes tus fotos tanto como nosotros disfrutamos hacerlas.</p>
 
       
 
