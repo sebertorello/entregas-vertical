@@ -306,58 +306,64 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // ----- Submit: compilar, descargar y publicar -----
-  $("#form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const cliente    = $("#cliente").value.trim();
-    const linkPhotos = $("#linkPhotos").value.trim();
-    const slugInput  = $("#slug").value.trim();
-    const slug       = slugInput || slugify(cliente);
+  const cliente    = $("#cliente").value.trim();
+  const linkPhotos = $("#linkPhotos").value.trim();
+  const slugInput  = $("#slug").value.trim();
+  const slug       = slugInput || slugify(cliente);
 
-    if (!cliente || !linkPhotos) {
-      alert("Completá Cliente y Link de Google Photos.");
-      return;
-    }
+  if (!cliente || !linkPhotos) {
+    alert("Completá Cliente y Link de Google Photos.");
+    return;
+  }
 
-    const portadaImgEl = $("#miniHeroImg");
-    const portada64 = portadaImgEl ? portadaImgEl.src : "";
-    const previews64 = Array.from(document.querySelectorAll("#miniGrid img")).map(i => i.src);
+  const portadaImgEl = $("#miniHeroImg");
+  const portada64 = portadaImgEl ? portadaImgEl.src : "";
+  const previews64 = Array.from(document.querySelectorAll("#miniGrid img")).map(i => i.src);
 
-    const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
+  // Compilar HTML final
+  const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
 
-    // Descarga local (backup)
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${slug}.html`;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    a.remove();
+  // Descarga local (backup)
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${slug}.html`;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  a.remove();
 
-    // Publicación automática
+  // Publicación automática (opcional si la API está OK)
+  try {
+    const submitBtn = $('#form button[type="submit"]');
+    submitBtn.disabled = true;
+    const txtOrig = submitBtn.textContent;
+    submitBtn.textContent = "Publicando...";
+
+    // Llamamos a la API, pero NO confiamos en la URL que devuelve
+    // (sirve sólo para que haga el commit)
     try {
-      submitBtn.disabled = true;
-      const txtOrig = submitBtn.textContent;
-      submitBtn.textContent = "Publicando...";
-
-      let urlPublica = await publicarLanding(slug, html);
-
-      // ⚠️ Si la API devuelve /slug.html (sin carpeta), corregimos a /entregas/slug.html
-      if (!/\/entregas\//.test(urlPublica)) {
-        urlPublica = urlPublica.replace(/(https?:\/\/[^\/]+)\//, `$1/entregas/`);
-      }
-
-      submitBtn.textContent = txtOrig;
-      submitBtn.disabled = false;
-
-      alert(`✅ Listo: ${urlPublica}`);
-      window.open(urlPublica, "_blank");
-    } catch (err) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Generar landing";
-      console.error(err);
-      alert(`⚠️ No se pudo publicar automáticamente.\nDescargaste el HTML y podés subirlo manualmente.\nDetalle: ${err.message}`);
+      await publicarLanding(slug, html);
+    } catch (_) {
+      // Si falla la API, igual seguimos: ya descargaste el HTML para subirlo a mano
+      console.warn("Publicación automática falló, pero seguimos con la URL local.");
     }
-  });
+
+    submitBtn.textContent = txtOrig;
+    submitBtn.disabled = false;
+
+    // Construimos SIEMPRE la URL final correcta en /entregas/<slug>.html
+    const finalUrl = new URL(`/entregas/${slug}.html`, location.origin).href;
+    alert(`✅ Listo: ${finalUrl}`);
+    window.open(finalUrl, "_blank");
+  } catch (err) {
+    const submitBtn = $('#form button[type="submit"]');
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Generar landing";
+    console.error(err);
+    alert(`⚠️ No se pudo publicar automáticamente.\nDescargaste el HTML y podés subirlo manualmente.\nDetalle: ${err.message}`);
+  }
 });
