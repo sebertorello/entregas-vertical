@@ -1,62 +1,56 @@
-/* ==== HEADER TUNE (no toca HTML) ==== */
+/* ===== HEADER TUNE v2 (solo overrides, no cambia HTML) ===== */
 
-/* Header en grid: marca a la izquierda, ubicación a la derecha */
+/* Alineamos todo a la izquierda y bajamos el header */
 header{
-  display:grid !important;
-  grid-template-columns: 1fr auto !important;
-  grid-template-areas: "brand loc" !important;
-  align-items:end !important;
-  gap:12px !important;
-}
-
-/* Bloque marca: logo + (wordmark y subtítulo en la misma línea) */
-.brand{ grid-area:brand !important; display:grid !important; grid-template-columns:auto 1fr !important; align-items:center !important; column-gap:12px !important; }
-
-/* Logo cuadrado igual que antes, podés subirlo un toque si querés */
-.logoSquare{ height:60px !important; border-radius:12px !important; }
-
-/* Wordmark más grande y “Entrega de fotos” a su lado, alineados por línea base */
-.brandBlock{
   display:flex !important;
-  align-items:baseline !important;
+  align-items:baseline !important; /* alinea por línea base */
   gap:14px !important;
-  min-width:0 !important;
+  flex-wrap:wrap !important;
+  margin-bottom:10px !important;   /* más cerca de la portada */
 }
 
-/* Tamaño del wordmark (ajustá si lo querés aún más grande) */
-.wordmark{ height:48px !important; width:auto !important; }
+/* Truco: “aplanamos” los contenedores para ordenar sus hijos en el header */
+.brand, .brandBlock{ display:contents !important; }
 
-/* “Entrega de fotos” alineado a la línea base del wordmark */
-header small{
-  font-weight:600 !important;
+/* Logo + wordmark + textos finos, bien alineados */
+.logoSquare{ height:62px !important; width:auto !important; border-radius:12px !important; }
+.wordmark{ height:48px !important; width:auto !important; margin-left:4px !important; }
+
+/* “Entrega de fotos” y “Río Cuarto, Córdoba” en fino (no bold) */
+header small,
+.loc small{
+  font-weight:500 !important;    /* fino */
   opacity:.9 !important;
   line-height:1 !important;
-  position:relative; top:2px; /* compensa ópticamente */
   white-space:nowrap !important;
 }
 
-/* Ubicación a la derecha, en la misma línea */
-.loc{ grid-area:loc !important; align-self:end !important; }
-.loc small{ white-space:nowrap !important; line-height:1 !important; opacity:.8 !important; }
+/* Orden visual: logo → wordmark → “Entrega de fotos” → ubicación */
+.logoSquare{ order:1; }
+.wordmark  { order:2; }
+header small{ order:3; margin-left:14px !important; } /* pequeño aire desde el wordmark */
+.loc       { order:4; }
+.loc small { order:4; margin-left:12px !important; }
 
-/* ====== Mobile ====== */
+/* Desktop: mantené todo en una línea si se puede */
+@media (min-width:641px){
+  header{ gap:16px !important; }
+}
+
+/* Mobile: si no entra, que la ubicación baje prolija */
 @media (max-width:640px){
-  /* Si no entra todo en una línea, que la ubicación baje prolija */
   header{
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "brand"
-      "loc" !important;
-    align-items:start !important;
+    align-items:flex-start !important;
+    gap:10px !important;
   }
   .wordmark{ height:44px !important; }
-  header small{ font-size:0.98rem !important; top:1px; }
-  .loc{ align-self:start !important; }
+  header small{ font-size:0.98rem !important; margin-left:10px !important; }
+  .loc{ width:100%; order:5; }          /* baja a la siguiente línea */
   .loc small{
-    margin-top:4px;
+    margin:4px 0 0 78px !important;     /* alineado visual con inicio del wordmark */
     display:inline-block;
     padding:3px 10px;
     border-radius:999px;
-    background:rgba(0,0,0,.05); /* se ve prolijo si baja a segunda línea */
+    background:rgba(0,0,0,.05);         /* discreto cuando baja */
   }
 }
