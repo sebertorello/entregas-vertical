@@ -1,1 +1,35 @@
+/* Hero alto con CTA superpuesta */
+.hero{ margin-bottom:0 !important; }
+.hero img{
+  height:60svh !important;
+  filter:brightness(.85) contrast(1.02) !important;
+}
+
+.card{
+  border-radius:24px 24px 20px 20px !important;
+  margin-top:-32px !important; /* se mete sobre el hero */
+  position:relative;
+  z-index:2;
+  box-shadow:0 16px 40px rgba(0,0,0,.12) !important;
+}
+
+/* CTA arriba, tipo “barra pegada” */
+.cta{
+  position:relative;
+  top:-14px;
+  margin-top:-8px !important;
+  margin-bottom:8px !important;
+}
+
+/* Grilla con mosaico más dinámico en desktop */
+@media(min-width:901px){
+  .previews{
+    grid-template-columns: 2fr 1fr 1fr !important;
+    gap:14px !important;
+  }
+  .previews img:nth-child(1){ grid-row: span 2; aspect-ratio:auto; height:100% }
+}
+
+/* Botón con sombra más marcada */
+.btn-primary{ box-shadow:0 12px 26px rgba(255,255,0,.28) !important; }
 
