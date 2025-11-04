@@ -343,12 +343,9 @@ $("#form").addEventListener("submit", async (e) => {
     const txtOrig = submitBtn.textContent;
     submitBtn.textContent = "Publicando...";
 
-    // Llamamos a la API, pero NO confiamos en la URL que devuelve
-    // (sirve sólo para que haga el commit)
     try {
-      await publicarLanding(slug, html);
+      await publicarLanding(slug, html); // hace el commit
     } catch (_) {
-      // Si falla la API, igual seguimos: ya descargaste el HTML para subirlo a mano
       console.warn("Publicación automática falló, pero seguimos con la URL local.");
     }
 
@@ -356,43 +353,42 @@ $("#form").addEventListener("submit", async (e) => {
     submitBtn.disabled = false;
 
     // Construimos SIEMPRE la URL final correcta en /entregas/<slug>.html
-const finalUrl = new URL(`/entregas/${slug}.html`, location.origin).href;
+    const finalUrl = new URL(`/entregas/${slug}.html`, location.origin).href;
 
-// === NUEVO BLOQUE: mensaje y botón de copiar ===
-const mensaje = `Muchas gracias por elegirnos 💛
+    // === Modal con botón de copiar para WhatsApp ===
+    const mensaje = `Muchas gracias por elegirnos 💛
 Desde el siguiente link podrás ver y compartir tus fotos:
 
 ${finalUrl}`;
 
-const contenedorMsg = document.createElement("div");
-contenedorMsg.style.cssText = `
-  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.5);z-index:9999;
-`;
-contenedorMsg.innerHTML = `
-  <div style="background:white;padding:24px 28px;border-radius:16px;max-width:420px;text-align:center;font-family:Montserrat,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.2)">
-    <h3 style="margin-bottom:12px;font-weight:900;color:#333">¡Landing creada con éxito!</h3>
-    <p style="font-size:15px;line-height:1.5;margin-bottom:16px;">Muchas gracias por elegirnos 💛<br>Desde el siguiente link podrás compartir tus fotos:</p>
-    <p style="word-break:break-all;font-weight:600;color:#333;margin-bottom:18px">${finalUrl}</p>
-    <button id="copyMsg" style="background:#FFFF00;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;">📋 Copiar texto para WhatsApp</button>
-    <br><br>
-    <button id="cerrarMsg" style="background:#333;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;">Cerrar</button>
-  </div>
-`;
+    const contenedorMsg = document.createElement("div");
+    contenedorMsg.style.cssText = `
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.5);z-index:9999;
+    `;
+    contenedorMsg.innerHTML = `
+      <div style="background:white;padding:24px 28px;border-radius:16px;max-width:420px;text-align:center;font-family:Montserrat,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.2)">
+        <h3 style="margin-bottom:12px;font-weight:900;color:#333">¡Landing creada con éxito!</h3>
+        <p style="font-size:15px;line-height:1.5;margin-bottom:16px;">Muchas gracias por elegirnos 💛<br>Desde el siguiente link podrás compartir tus fotos:</p>
+        <p style="word-break:break-all;font-weight:600;color:#333;margin-bottom:18px">${finalUrl}</p>
+        <button id="copyMsg" style="background:#FFFF00;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;">📋 Copiar texto para WhatsApp</button>
+        <br><br>
+        <button id="cerrarMsg" style="background:#333;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(contenedorMsg);
 
-document.body.appendChild(contenedorMsg);
+    // copiar al portapapeles
+    $("#copyMsg").addEventListener("click", async () => {
+      await navigator.clipboard.writeText(mensaje);
+      alert("✅ Mensaje copiado. Pegalo en WhatsApp 📱");
+    });
 
-// copiar al portapapeles
-$("#copyMsg").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(mensaje);
-  alert("✅ Mensaje copiado. Pegalo en WhatsApp 📱");
-});
+    // cerrar modal
+    $("#cerrarMsg").addEventListener("click", () => contenedorMsg.remove());
 
-// cerrar modal
-$("#cerrarMsg").addEventListener("click", () => contenedorMsg.remove());
-
-// abrir la landing en nueva pestaña
-window.open(finalUrl, "_blank");
+    // abrir la landing en nueva pestaña
+    window.open(finalUrl, "_blank");
 
   } catch (err) {
     const submitBtn = $('#form button[type="submit"]');
@@ -401,4 +397,6 @@ window.open(finalUrl, "_blank");
     console.error(err);
     alert(`⚠️ No se pudo publicar automáticamente.\nDescargaste el HTML y podés subirlo manualmente.\nDetalle: ${err.message}`);
   }
-});
+}); // <-- cierra el listener de submit
+
+}); // <-- cierra el DOMContentLoaded
