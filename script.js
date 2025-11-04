@@ -1,12 +1,6 @@
 /************************************************************
  * Generador de Landing de Entregas – Vertical Producciones
- * ---------------------------------------------------------
- * Qué hace este archivo:
- * - Toma datos del formulario y las imágenes (portada + previews)
- * - Permite elegir el foco (object-position) clickeando la vista previa
- * - Compila una landing HTML completa (con CSS inline optimizado)
- * - Descarga localmente el HTML (backup)
- * - Publica automáticamente vía endpoint de Vercel (si responde OK)
+ * Con compresión/redimensión de imágenes en el cliente
  ************************************************************/
 
 // ===== Utilidades básicas =====
@@ -22,35 +16,86 @@ const slugify = (str) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
-// Convertir archivo a DataURL (base64) para incrustar en el HTML final
-const fileToDataURL = (file) =>
-  new Promise((resolve, reject) => {
+// === Redimensionar & comprimir a DataURL (JPEG) ===
+// - maxSide: tamaño máximo del lado mayor (px)
+// - quality: 0..1 (calidad JPEG)
+// - forceJPEG: true => exporta siempre JPEG (más chico que PNG)
+// Si el navegador no puede decodificar la imagen, vuelve al original.
+async function fileToDataURLResized(file, { maxSide = 1920, quality = 0.82, forceJPEG = true } = {}) {
+  // 1) Leemos el archivo a DataURL
+  const origDataURL = await new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result);
     r.onerror = reject;
     r.readAsDataURL(file);
   });
 
+  // 2) Intentamos decodificar como imagen
+  const img = new Image();
+  img.decoding = "async";
+  img.loading = "eager";
+
+  const loadPromise = new Promise((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = reject;
+  });
+  img.src = origDataURL;
+
+  try {
+    await loadPromise;
+  } catch (_) {
+    // Fallback: si no se pudo cargar (HEIC u otro), mando el original
+    return origDataURL;
+  }
+
+  // 3) Calculamos dimensiones destino manteniendo proporción
+  const { naturalWidth: w, naturalHeight: h } = img;
+  const side = Math.max(w, h);
+  if (side <= maxSide) {
+    // Ya es chica: si vamos a forzar JPEG igual re-encodeamos para limpiar metadata
+    if (!forceJPEG) return origDataURL;
+  }
+
+  let destW = w;
+  let destH = h;
+  if (side > maxSide) {
+    const scale = maxSide / side;
+    destW = Math.round(w * scale);
+    destH = Math.round(h * scale);
+  }
+
+  // 4) Dibujamos en canvas y exportamos
+  const canvas = document.createElement("canvas");
+  canvas.width = destW;
+  canvas.height = destH;
+  const ctx = canvas.getContext("2d", { alpha: false }); // sin alpha -> JPEG compacto
+  // Fondo negro para seguridad si alguna imagen trae alfa (igual exportamos a JPEG)
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, destW, destH);
+  ctx.drawImage(img, 0, 0, destW, destH);
+
+  // Exportar como JPEG (limpia EXIF/metadata, baja peso)
+  const out = canvas.toDataURL("image/jpeg", quality);
+  return out || origDataURL;
+}
+
 // ===== Estado de recortes/foco =====
-// Guarda la posición del foco de portada y de cada preview (en %)
 let portadaPos = { x: 50, y: 50 };
 let previewsPos = [];
 
 /****************************************************************
  * buildLandingHTML()
  * Arma el HTML COMPLETO de la página final que verá tu cliente.
- * - Lleva CSS inline para que sea autónoma
- * - Usa rutas absolutas para los íconos / logo (/img/...)
- * - En móvil, mantiene SIEMPRE 2 columnas para las previews
+ * - CSS inline autónomo
+ * - Mantiene 2 columnas en móvil
+ * - @vertical.producciones en footer
  ****************************************************************/
 const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) => {
   const title = `Entrega – ${cliente} | Vertical Producciones`;
 
-  // IMPORTANTE: og:image como URL pública (no base64) para los previews de redes.
-  // Asegurate de tener /img/share.jpg subido en el hosting.
+  // og:image como URL pública (no base64) para previews de redes
   const ogImage = `https://entregas.verticalproducciones.com.ar/img/share.jpg`;
 
-  // Previews: aplica el foco guardado y lazy-loading
   const previewsHtml = (previews64 || [])
     .map((src, i) => {
       const pos = previewsPos?.[i] || { x: 50, y: 50 };
@@ -58,7 +103,6 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
     })
     .join("\n");
 
-  // HTML completo de la landing
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -68,18 +112,15 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 <meta name="description" content="Tus fotos están listas.">
 <link rel="canonical" href="https://entregas.verticalproducciones.com.ar/${slug}.html" />
 
-<!-- Open Graph -->
 <meta property="og:title" content="${title}" />
 <meta property="og:image" content="${ogImage}" />
 <meta property="og:url" content="https://entregas.verticalproducciones.com.ar/${slug}.html" />
 <meta property="og:type" content="website" />
 
-<!-- Tipografía -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
-<!-- Favicons (usar rutas absolutas al root del dominio) -->
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png">
@@ -102,7 +143,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   header small{white-space:nowrap;opacity:.8}
   .loc small{opacity:.8}
 
-  /* Tarjetas y hero */
+  /* Card + hero */
   .card{background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
   .hero{position:relative;border-radius:20px;overflow:hidden;margin-bottom:20px;background:#000}
   .hero img{width:100%;height:48svh;object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%;filter:brightness(.85)}
@@ -127,9 +168,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   .ico img{width:20px;height:20px;object-fit:contain}
   .ico span{font-weight:600}
 
-  /* RESPONSIVE:
-     - A 900px: apila header, mantiene 2 columnas de fotos y ordena el footer
-     - A 420px: ajusta tip y paddings, sigue con 2 columnas de fotos */
+  /* Responsive: 2 columnas en mobile, header/foot apilados */
   @media (max-width:900px){
     header{flex-direction:column;align-items:flex-start;gap:6px}
     .loc{margin-top:2px}
@@ -198,11 +237,8 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 </html>`;
 };
 
-/****************************************************************
- * publicarLanding()
- * Llama al endpoint de Vercel que comitea el HTML al repo y despliega.
- * Devuelve la URL pública (https://entregas.verticalproducciones.com.ar/slug.html)
- ****************************************************************/
+// ===== publicar a Vercel (que commitea al repo) =====
+// Si querés evitar CORS totalmente, podés cambiar a: const ENDPOINT = '/api/publish';
 async function publicarLanding(slug, htmlFinal) {
   const ENDPOINT = 'https://entregas-vertical.vercel.app/api/publish';
 
@@ -222,30 +258,26 @@ async function publicarLanding(slug, htmlFinal) {
   return data.url; // ej: https://entregas.verticalproducciones.com.ar/Oriana.html
 }
 
-/****************************************************************
- * App – listeners y flujo
- ****************************************************************/
+// ===== app =====
 window.addEventListener("DOMContentLoaded", () => {
-  // Año del footer (en el generador, no en la landing final)
   $("#y").textContent = yy();
 
-  // Referencias de UI
   const miniHero = $("#miniHero");
   const miniGrid = $("#miniGrid");
   const portadaX = $("#portadaX");
   const portadaY = $("#portadaY");
   const submitBtn = $('#form button[type="submit"]');
 
-  /********** Portada: cargar imagen y vista previa **********/
+  // ----- Portada: cargar + preview (con foco) -----
   $("#portada").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) { miniHero.textContent = "Sin portada"; return; }
-    const src = await fileToDataURL(f);
+    // Redimensionamos fuerte la portada
+    const src = await fileToDataURLResized(f, { maxSide: 1920, quality: 0.82, forceJPEG: true });
     miniHero.innerHTML = `<img id="miniHeroImg" src="${src}" alt="Portada"
       style="object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%">`;
   });
 
-  // Elegir foco clickeando sobre la mini-hero
   miniHero.addEventListener("click", (e) => {
     const img = $("#miniHeroImg"); if (!img) return;
     const rect = img.getBoundingClientRect();
@@ -257,7 +289,6 @@ window.addEventListener("DOMContentLoaded", () => {
     portadaY.value = Math.round(portadaPos.y);
   });
 
-  // Sliders X/Y sincronizados con la mini-hero
   portadaX.addEventListener("input", () => {
     const img = $("#miniHeroImg"); if (!img) return;
     portadaPos.x = Number(portadaX.value);
@@ -269,13 +300,15 @@ window.addEventListener("DOMContentLoaded", () => {
     img.style.objectPosition = `${portadaPos.x}% ${portadaPos.y}%`;
   });
 
-  /********** Previews: cargar imágenes y permitir foco por click **********/
+  // ----- Previews: cargar (máx 6), redimensionar y permitir elegir foco -----
   $("#previews").addEventListener("change", async (e) => {
     miniGrid.innerHTML = "";
-    const files = Array.from(e.target.files || []).slice(0, 6); // máx 6
+    const files = Array.from(e.target.files || []).slice(0, 6);
     previewsPos = [];
+
+    // Procesamos en serie para no saturar memoria en móviles
     for (let i = 0; i < files.length; i++) {
-      const src = await fileToDataURL(files[i]);
+      const src = await fileToDataURLResized(files[i], { maxSide: 1200, quality: 0.8, forceJPEG: true });
       const img = document.createElement("img");
       img.src = src;
       img.style.objectFit = "cover";
@@ -292,7 +325,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  /********** Botón Limpiar **********/
+  // ----- Limpiar formulario -----
   $("#limpiar").addEventListener("click", () => {
     $("#form").reset();
     miniHero.textContent = "Sin portada";
@@ -302,7 +335,7 @@ window.addEventListener("DOMContentLoaded", () => {
     portadaX.value = 50; portadaY.value = 50;
   });
 
-  /********** Submit: compilar HTML, descargar y publicar **********/
+  // ----- Submit: compilar, descargar y publicar -----
   $("#form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -316,16 +349,14 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Portada a base64 (si se cargó)
-    const portadaFile = $("#portada").files?.[0];
-    const portada64 = portadaFile ? await fileToDataURL(portadaFile) : "";
+    // Portada (si existe) ya comprimida porque la cargamos con el resize
+    const portadaImgEl = $("#miniHeroImg");
+    const portada64 = portadaImgEl ? portadaImgEl.src : "";
 
-    // Previews (hasta 6) a base64
-    const previewFiles = Array.from($("#previews").files || []).slice(0, 6);
-    const previews64 = [];
-    for (const f of previewFiles) previews64.push(await fileToDataURL(f));
+    // Previews comprimidas: leemos lo que ya mostramos en miniGrid
+    const previews64 = Array.from(document.querySelectorAll("#miniGrid img")).map(i => i.src);
 
-    // Compilar HTML final de la landing
+    // Compilar HTML final
     const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
 
     // Descarga local (backup)
