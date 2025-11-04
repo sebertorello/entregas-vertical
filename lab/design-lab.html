@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Theme Lab – Entregas Vertical</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{--dark:#333333;--light:#F1F1F1;--accent:#FFFF00}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--light);color:var(--dark);font-family:'Montserrat',system-ui,sans-serif}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e5e5e5;background:#fff;position:sticky;top:0;z-index:10}
+    .left{display:flex;align-items:center;gap:10px}
+    .logo{width:28px;height:28px;border-radius:6px;background:#ff0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    input,select,button{font:inherit;padding:8px 10px;border:1px solid #ddd;border-radius:10px;background:#fff}
+    button{font-weight:800;cursor:pointer}
+    .themes button{border:none;padding:8px 12px;border-radius:10px;background:#f6f6f6}
+    .themes button.active{background:var(--accent)}
+    .wrap{max-width:1200px;margin:0 auto}
+    .frameWrap{padding:16px}
+    iframe{width:100%;height:calc(100vh - 70px);border:0;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);background:#fff}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="left">
+      <div class="logo" title="Vertical"></div>
+      <strong>Theme Lab · Entregas</strong>
+    </div>
+    <div class="controls">
+      <label>
+        Slug:
+        <input id="slug" value="oriana" style="width:160px" />
+      </label>
+      <button id="load">Cargar</button>
+      <div class="themes">
+        <button data-theme="none" class="active">Base</button>
+        <button data-theme="minimal">Minimal</button>
+        <button data-theme="split-hero">Split Hero</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="frameWrap">
+      <iframe id="preview" src="/entregas/oriana.html" loading="lazy"></iframe>
+    </div>
+  </div>
+
+<script>
+const iframe = document.getElementById('preview');
+const slugInput = document.getElementById('slug');
+const loadBtn = document.getElementById('load');
+const themeBtns = document.querySelectorAll('.themes button');
+
+let currentTheme = 'none';
+
+function injectTheme(theme){
+  const doc = iframe.contentDocument;
+  if(!doc) return;
+
+  // quita link previo
+  const prev = doc.getElementById('theme-override');
+  if(prev) prev.remove();
+
+  if(theme === 'none') return;
+
+  // inyecta nueva hoja
+  const link = doc.createElement('link');
+  link.id = 'theme-override';
+  link.rel = 'stylesheet';
+  link.href = `/lab/themes/${theme}.css`;
+  doc.head.appendChild(link);
+}
+
+iframe.addEventListener('load', ()=> injectTheme(currentTheme));
+
+loadBtn.addEventListener('click', ()=>{
+  const slug = slugInput.value.trim();
+  if(!slug) return;
+  iframe.src = `/entregas/${slug}.html`;
+});
+
+themeBtns.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    themeBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTheme = btn.dataset.theme;
+    injectTheme(currentTheme);
+  });
+});
+</script>
+</body>
+</html>
 
