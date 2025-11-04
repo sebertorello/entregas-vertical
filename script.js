@@ -1,3 +1,4 @@
+// ===== utilidades básicas =====
 const $ = (sel) => document.querySelector(sel);
 const yy = () => new Date().getFullYear();
 
@@ -17,10 +18,11 @@ const fileToDataURL = (file) =>
     r.readAsDataURL(file);
   });
 
+// ===== estado de recortes =====
 let portadaPos = { x: 50, y: 50 };
 let previewsPos = [];
 
-/* LANDING GENERADA */
+// ===== constructor de la landing final (HTML) =====
 const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) => {
   const title = `Entrega – ${cliente} | Vertical Producciones`;
   const ogImage = portada64 || "";
@@ -44,7 +46,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   <meta property="og:url" content="https://verticalproducciones.com.ar/entregas/${slug}" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
-  <!-- Favicon/brand para la landing (guardada en /entregas/): rutas relativas -->
+  <!-- Favicon/brand para la landing (rutas relativas desde /entregas/slug.html) -->
   <link rel="icon" type="image/svg+xml" href="../img/logo.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="../img/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="../img/favicon-16.png">
@@ -141,7 +143,30 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 </html>`;
 };
 
-/* APP */
+// ===== llamada al endpoint de publicación en Vercel =====
+async function publicarLanding(slug, htmlFinal) {
+  // 👉 Cambiá el dominio si tu proyecto Vercel tiene otro:
+  const ENDPOINT = 'https://entregas-vertical.vercel.app/api/publish';
+
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug, html: htmlFinal })
+  });
+
+  let data = {};
+  try { data = await res.json(); } catch (_) {}
+
+  if (!res.ok) {
+    const msg = data.error || data.detail || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  // data.url -> https://entregas.verticalproducciones.com.ar/<slug>
+  return data.url;
+}
+
+// ===== app =====
 window.addEventListener("DOMContentLoaded", () => {
   $("#y").textContent = yy();
 
@@ -149,6 +174,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const miniGrid = $("#miniGrid");
   const portadaX = $("#portadaX");
   const portadaY = $("#portadaY");
+  const submitBtn = $('#form button[type="submit"]');
 
   $("#portada").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
@@ -219,8 +245,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const slugInput  = $("#slug").value.trim();
     const slug       = slugInput || slugify(cliente);
 
-    if (!cliente || !linkPhotos) { alert("Completá Cliente y Link de Google Photos."); return; }
+    if (!cliente || !linkPhotos) {
+      alert("Completá Cliente y Link de Google Photos.");
+      return;
+    }
 
+    // armo imágenes
     const portadaFile = $("#portada").files?.[0];
     const portada64 = portadaFile ? await fileToDataURL(portadaFile) : "";
 
@@ -228,8 +258,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const previews64 = [];
     for (const f of previewFiles) previews64.push(await fileToDataURL(f));
 
+    // compilo HTML final
     const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
 
+    // descarga local (backup)
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -238,5 +270,23 @@ window.addEventListener("DOMContentLoaded", () => {
     a.click();
     URL.revokeObjectURL(a.href);
     a.remove();
+
+    // publicación automática a Vercel -> GitHub Pages
+    try {
+      submitBtn.disabled = true;
+      const txtOrig = submitBtn.textContent;
+      submitBtn.textContent = "Publicando...";
+      const urlPublica = await publicarLanding(slug, html);
+      submitBtn.textContent = txtOrig;
+      submitBtn.disabled = false;
+
+      alert(`✅ Listo: ${urlPublica}`);
+      window.open(urlPublica, "_blank");
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Generar landing";
+      console.error(err);
+      alert(`⚠️ No se pudo publicar automáticamente.\nDescargaste el HTML y podés subirlo manualmente.\nDetalle: ${err.message}`);
+    }
   });
 });
