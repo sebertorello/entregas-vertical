@@ -10,13 +10,34 @@ const slugify = (str) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
-const fileToDataURL = (file) =>
-  new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
+// --- NUEVO: redimensionar/convertir a JPEG para bajar el peso ---
+async function fileToDataURLResized(file, maxW, maxH, quality = 0.82) {
+  const img = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = reader.result;
+    };
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
   });
+
+  let { width, height } = img;
+  const ratio = Math.min(maxW / width, maxH / height, 1); // no agrandar
+  width = Math.round(width * ratio);
+  height = Math.round(height * ratio);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+
+  // JPEG para reducir tamaño
+  return canvas.toDataURL('image/jpeg', quality);
+}
 
 // ===== estado de recortes =====
 let portadaPos = { x: 50, y: 50 };
@@ -43,7 +64,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
   <meta name="description" content="Tus fotos están listas.">
   <meta property="og:title" content="${title}" />
   <meta property="og:image" content="${ogImage}" />
-  <meta property="og:url" content="https://verticalproducciones.com.ar/entregas/${slug}" />
+  <meta property="og:url" content="https://entregas.verticalproducciones.com.ar/${slug}.html" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
   <!-- Favicon/brand para la landing (rutas relativas desde /entregas/slug.html) -->
@@ -145,7 +166,7 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 
 // ===== llamada al endpoint de publicación en Vercel =====
 async function publicarLanding(slug, htmlFinal) {
-  // 👉 Cambiá el dominio si tu proyecto Vercel tiene otro:
+  // Cambiá si tu proyecto Vercel usa otro dominio
   const ENDPOINT = 'https://entregas-vertical.vercel.app/api/publish';
 
   const res = await fetch(ENDPOINT, {
@@ -155,15 +176,14 @@ async function publicarLanding(slug, htmlFinal) {
   });
 
   let data = {};
-  try { data = await res.json(); } catch (_) {}
+  try { data = await res.json(); } catch {}
 
   if (!res.ok) {
-    const msg = data.error || data.detail || `HTTP ${res.status}`;
+    const msg = data?.error || data?.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
 
-  // data.url -> https://entregas.verticalproducciones.com.ar/<slug>
-  return data.url;
+  return data.url; // https://entregas.verticalproducciones.com.ar/<slug>.html
 }
 
 // ===== app =====
@@ -179,9 +199,9 @@ window.addEventListener("DOMContentLoaded", () => {
   $("#portada").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) { miniHero.textContent = "Sin portada"; return; }
-    const src = await fileToDataURL(f);
+    const src = await fileToDataURLResized(f, 1600, 1600, 0.82);
     miniHero.innerHTML = `<img id="miniHeroImg" src="${src}" alt="Portada"
-      style="object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%">`;
+      style="object-fit:cover;object-position:${portadaPos.x}% ${portadaPos.y}%;width:100%;height:100%">`;
   });
 
   miniHero.addEventListener("click", (e) => {
@@ -211,11 +231,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const files = Array.from(e.target.files || []).slice(0, 6);
     previewsPos = [];
     for (let i = 0; i < files.length; i++) {
-      const src = await fileToDataURL(files[i]);
+      const src = await fileToDataURLResized(files[i], 900, 900, 0.8);
       const img = document.createElement("img");
       img.src = src;
       img.style.objectFit = "cover";
       img.style.objectPosition = "50% 50%";
+      img.style.width = "100%";
+      img.style.aspectRatio = "1/1";
       previewsPos[i] = { x: 50, y: 50 };
       img.addEventListener("click", (ev) => {
         const r = img.getBoundingClientRect();
@@ -250,18 +272,24 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // armo imágenes
+    // Portada (redimensionada)
+    let portada64 = "";
     const portadaFile = $("#portada").files?.[0];
-    const portada64 = portadaFile ? await fileToDataURL(portadaFile) : "";
+    if (portadaFile) {
+      portada64 = await fileToDataURLResized(portadaFile, 1600, 1600, 0.82);
+    }
 
+    // Previews (redimensionadas)
     const previewFiles = Array.from($("#previews").files || []).slice(0, 6);
     const previews64 = [];
-    for (const f of previewFiles) previews64.push(await fileToDataURL(f));
+    for (const f of previewFiles) {
+      previews64.push(await fileToDataURLResized(f, 900, 900, 0.8));
+    }
 
-    // compilo HTML final
+    // HTML final
     const html = buildLandingHTML({ cliente, slug, linkPhotos, portada64, previews64 });
 
-    // descarga local (backup)
+    // Descarga local (backup)
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -271,7 +299,7 @@ window.addEventListener("DOMContentLoaded", () => {
     URL.revokeObjectURL(a.href);
     a.remove();
 
-    // publicación automática a Vercel -> GitHub Pages
+    // Publicación automática
     try {
       submitBtn.disabled = true;
       const txtOrig = submitBtn.textContent;
