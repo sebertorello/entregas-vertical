@@ -1,61 +1,82 @@
-// Crea/actualiza entregas/<slug>/index.html en tu repo usando la API de GitHub.
+// api/publish.js
+
+export const config = {
+  api: {
+    bodyParser: {
+      // aceptá HTMLs con imágenes embebidas
+      sizeLimit: '8mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'content-type');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    return res.status(204).end();
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { slug, html } = await req.json();
-    if (!slug || !html) return res.status(400).json({ error: 'slug y html son requeridos' });
+    const { slug, html } = req.body || {};
+    if (!slug || !html) return res.status(400).json({ error: 'Missing slug or html' });
 
-    const owner = process.env.REPO_OWNER;     // p.ej. "sebertorello"
-    const repo  = process.env.REPO_NAME;      // p.ej. "entregas-vertical"
-    const token = process.env.GITHUB_TOKEN;   // tu token (secreto en Vercel)
-    const path  = `entregas/${slug}/index.html`;
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER   = process.env.REPO_OWNER;   // e.g. "sebertorello"
+    const REPO_NAME    = process.env.REPO_NAME;    // e.g. "entregas-vertical"
 
-    // ¿Existe ya? -> obtener sha para update
-    let sha = null;
-    const getResp = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
-      { headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'vertical-publisher' } }
-    );
-    if (getResp.ok) {
-      const data = await getResp.json();
-      sha = data.sha;
+    if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
+      return res.status(500).json({ error: 'Missing GitHub env vars' });
     }
 
-    // Crear/actualizar archivo
-    const putResp = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'vertical-publisher'
-        },
-        body: JSON.stringify({
-          message: `publish: entrega ${slug}`,
-          content: Buffer.from(html, 'utf8').toString('base64'),
-          sha,
-          committer: { name: 'Vertical Bot', email: 'bot@vertical.com' },
-          author:    { name: 'Vertical Bot', email: 'bot@vertical.com' }
-        })
+    const path = `entregas/${slug}.html`;
+    const apiBase = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(path)}`;
+
+    // ¿ya existe? (para obtener SHA y hacer update)
+    let sha = undefined;
+    {
+      const r = await fetch(apiBase, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.sha) sha = j.sha;
       }
-    );
-
-    if (!putResp.ok) {
-      const err = await putResp.text();
-      return res.status(500).json({ error: 'GitHub error', detail: err });
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(200).json({ ok: true, url: `https://entregas.verticalproducciones.com.ar/${slug}/` });
+    const contentB64 = Buffer.from(html, 'utf8').toString('base64');
+
+    const commitRes = await fetch(apiBase, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: sha ? `update landing ${slug}` : `create landing ${slug}`,
+        content: contentB64,
+        sha,
+        branch: 'main'
+      })
+    });
+
+    if (!commitRes.ok) {
+      const err = await safeJson(commitRes);
+      return res.status(commitRes.status).json({ error: err?.message || 'GitHub commit failed' });
+    }
+
+    // URL final en tu dominio
+    const publicUrl = `https://entregas.verticalproducciones.com.ar/${encodeURIComponent(slug)}.html`;
+    return res.status(200).json({ url: publicUrl });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e?.message || 'Unexpected error' });
   }
+}
+
+async function safeJson(r) {
+  try { return await r.json(); } catch { return null; }
 }
