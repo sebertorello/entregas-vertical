@@ -1,0 +1,62 @@
+/* ==== HEADER TUNE (no toca HTML) ==== */
+
+/* Header en grid: marca a la izquierda, ubicación a la derecha */
+header{
+  display:grid !important;
+  grid-template-columns: 1fr auto !important;
+  grid-template-areas: "brand loc" !important;
+  align-items:end !important;
+  gap:12px !important;
+}
+
+/* Bloque marca: logo + (wordmark y subtítulo en la misma línea) */
+.brand{ grid-area:brand !important; display:grid !important; grid-template-columns:auto 1fr !important; align-items:center !important; column-gap:12px !important; }
+
+/* Logo cuadrado igual que antes, podés subirlo un toque si querés */
+.logoSquare{ height:60px !important; border-radius:12px !important; }
+
+/* Wordmark más grande y “Entrega de fotos” a su lado, alineados por línea base */
+.brandBlock{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:14px !important;
+  min-width:0 !important;
+}
+
+/* Tamaño del wordmark (ajustá si lo querés aún más grande) */
+.wordmark{ height:48px !important; width:auto !important; }
+
+/* “Entrega de fotos” alineado a la línea base del wordmark */
+header small{
+  font-weight:600 !important;
+  opacity:.9 !important;
+  line-height:1 !important;
+  position:relative; top:2px; /* compensa ópticamente */
+  white-space:nowrap !important;
+}
+
+/* Ubicación a la derecha, en la misma línea */
+.loc{ grid-area:loc !important; align-self:end !important; }
+.loc small{ white-space:nowrap !important; line-height:1 !important; opacity:.8 !important; }
+
+/* ====== Mobile ====== */
+@media (max-width:640px){
+  /* Si no entra todo en una línea, que la ubicación baje prolija */
+  header{
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "brand"
+      "loc" !important;
+    align-items:start !important;
+  }
+  .wordmark{ height:44px !important; }
+  header small{ font-size:0.98rem !important; top:1px; }
+  .loc{ align-self:start !important; }
+  .loc small{
+    margin-top:4px;
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:999px;
+    background:rgba(0,0,0,.05); /* se ve prolijo si baja a segunda línea */
+  }
+}
