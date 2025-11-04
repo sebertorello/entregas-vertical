@@ -1,1 +1,42 @@
+:root{
+  --dark:#333333;
+  --light:#F7F7F7; /* un pelo más claro */
+  --accent:#FFFF00;
+}
+
+/* Fondo general más limpio */
+body{ background:var(--light) !important; }
+
+/* Card más “papel” */
+.card{
+  border-radius:24px !important;
+  box-shadow:0 6px 18px rgba(0,0,0,.06) !important;
+  padding:24px !important;
+}
+
+/* Hero más bajito y sin darken muy fuerte */
+.hero img{
+  height:42svh !important;
+  filter:brightness(.92) !important;
+}
+
+/* Títulos un poco más grandes y aireados */
+.title{
+  letter-spacing:.2px !important;
+  margin-bottom:10px !important;
+}
+.subtitle{
+  opacity:.9 !important;
+  margin-bottom:18px !important;
+}
+
+/* Grilla con gap un toque mayor */
+.previews{ gap:14px !important; }
+.previews img{ border-radius:14px !important; }
+
+/* Botón más “píldora” */
+.btn{ border-radius:999px !important; padding:14px 18px !important; }
+
+/* Footer más “silencioso” */
+footer{ opacity:.9 }
 
