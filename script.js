@@ -126,7 +126,12 @@ const buildLandingHTML = ({ cliente, slug, linkPhotos, portada64, previews64 }) 
 
   .title{font-weight:900;font-size:clamp(1.25rem,1.2rem + 1.2vw,1.8rem);margin-bottom:8px;line-height:1.15}
   .subtitle{font-weight:700;opacity:.85;margin-bottom:14px;line-height:1.35}
-  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+  .cta{
+  display:flex;
+  justify-content:center;
+  margin-top:12px;   /* separación igual a las fotos */
+  margin-bottom:8px; /* un poco de aire abajo */
+}
   .btn{padding:12px 16px;border:none;border-radius:14px;font-weight:800;cursor:pointer;transition:.15s}
   .btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.1)}
   .btn-primary{background:var(--accent);color:#111;box-shadow:0 10px 24px rgba(255,255,0,.25)}
